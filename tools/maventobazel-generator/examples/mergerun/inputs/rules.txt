@@ -1,0 +1,5 @@
+# Rules for choosing dependencies
+# Rules are evaluated in found order, and first match wins (rest will be ignored for the dep if rule fires)
+
+# RULE groupId=org.apache.logging.log4j winningVersion=.*-patched
+# RULE groupId=org.apache.logging.log4j pinnedVersion=2.8.1
