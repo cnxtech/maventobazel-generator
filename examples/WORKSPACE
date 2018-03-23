@@ -1,0 +1,6 @@
+# See the snippet below for an example of how to load in the external deps file
+# produced by running the migration tool into your WORKSPACE
+
+# load our migrated dependencies
+load("//:external_deps.bzl", "external_maven_jars")
+external_maven_jars()

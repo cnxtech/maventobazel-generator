@@ -5,28 +5,30 @@ Specifically it processes the Maven dependencies and outputs the following artif
 - the Bazel [WORKSPACE](https://docs.bazel.build/versions/master/build-ref.html#workspace) entries that identify the external Maven dependencies in Nexus/Artifactory
 - the Bazel [BUILD](https://docs.bazel.build/versions/master/skylark/build-style.html) entries that refer to the external Maven dependencies in the project BUILD file
 
-### Why Not Use the Bazel Supplied Migration/Generator Tool?
+There are other Maven to Bazel migration tools available, see [this section below](https://github.com/salesforce/maventobazel-generator#why-not-use-the-bazel-supplied-migrationgenerator-tool) for
+  why we wrote our own.
 
-Bazel provides a [migration tool](https://github.com/bazelbuild/migration-tooling).
-Maybe it works for you.
+### Quick Start
 
-There were several drawbacks that we hit with it:
+You don't need to copy this tool into your Bazel Workspace - it runs independent of your Workspace.
+You just need to build the tool somewhere on your machine, and copy in files that are required for a migration tool run.
+The tool is built with Maven.
 
-- There [is a bug](https://github.com/bazelbuild/migration-tooling/issues/47) that gets triggered by migrating one of our projects. There is a proposed fix for that bug in a fork, but even the proposed fix doesn't resolve the problem for us.
-- The tool does not allow you to merge new dependencies into an existing [WORKSPACE](../../WORKSPACE) - it creates a single WORKSPACE from a single Maven project. We need a merge feature, as we will migrate Maven projects incrementally, one at a time, from Maven to Bazel.
-- It uses the Aether project, which has questionable support. The [last commit](https://github.com/eclipse/aether-core/commits/master) was in 2014.
+This is how you run it:
+```
+# TOOL_DIR is the directory that contains this README
 
-We wrote this tool as an alternative to the Bazel supplied tool.
-It takes a different approach.
-Notably, the input into this tool is not your Maven pom.xml, it is the output of running ```mvn dependency:list``` in your Maven project.
-This eliminates the need for Aether.
-In addition, it can parse WORKSPACE files, which allows it to do smart merges when enforcing the Single Version Policy of a monorepo.
+# do this in your Maven project that you are migrating to Bazel
+mvn dependency:list > $TOOL_DIR/inputs/my-project-deps.txt
 
-There is another migration tool [bazel-deps](https://github.com/johnynek/bazel-deps) which has a similar feature set of this tool.
-The main differences with this tool as compared to *bazel-deps* are:
-- It is written in Java not Scala
-- It does not use Aether. By using a file to list the migrating dependencies, we have a history of the inputs into the migration.
-- It does not build transitive constructs in the WORKSPACE or BUILD files, all the dependencies are flat. We went with a no-transitive approach to dependencies in the beginning for a reason that is no longer relevant, but the approach remains. This may or may not be a good thing.
+# now run the migration tool
+cd $TOOL_DIR
+mvn install
+java -jar target/maventobazel-generator-1.0.0.jar --workspace
+```
+
+The *TOOL_DIR/outputs* directory will now contain migrated artifacts.
+Documentation is below for exactly what is produced, and what options you have.
 
 ### Examples
 
@@ -34,7 +36,7 @@ You will read below about how to run the tool to work the two use cases.
 Before you begin reading that, be aware that there are example available that let you run the tool and show the features.
 After reading the use cases below, be sure to try them out.
 
--  [Examples](tools/maventobazel-generator/examples)
+-  [Examples](examples)
 
 ### Use Case 1: Generating the dependencies for the WORKSPACE for migrating Maven projects
 
@@ -61,7 +63,7 @@ To use this tool:
 - Create subdirectories named *inputs* and *outputs* in the migration tool directory if they don't already exist
 - Copy your WORKSPACE file (if there are *maven_jar* entries in it), your *external_deps.bzl* file (if you have one already), and the output from step 1 ino the *inputs* subdir.
 - Build this tool in the migration tool dir:  ```mvn install```
-- Run the generator tool:  ```java -jar  target/maventobazel-generator_deploy.jar --workspace```
+- Run the generator tool:  ```java -jar  target/maventobazel-generator-1.0.0.jar --workspace```
 - Copy the *outputs/external_deps.bzl* file to the root of the workspace.  ```cp external_deps.bzl ../..```
 - Add the *load* stanza listed above to the end of your [WORKSPACE file](WORKSPACE), if you have not already
 
@@ -78,7 +80,7 @@ To use this tool:
 - Create a subdirectories named *inputs* and *outputs* in the migration tool dir if they don't already exist
 - Copy the file from step 1 into the *inputs* directory
 - Build this tool in the migration tool dir:  ```mvn install```
-- Run this generator tool:  ```java -jar  target/maventobazel-generator_deploy.jar --build```
+- Run this generator tool:  ```java -jar  target/maventobazel-generator-1.0.0.jar --build```
 - Copy the *outputs/BUILD.out* list of dependencies into your project's *BUILD* file as the *deps* attribute
 
 ### Dependency Arbiter Rules
@@ -113,6 +115,30 @@ Details:
 - the 'pinnedVersion' format is used to override any matching logic
 - the 'winningVersion' format is a regex, and if a dependency version matches it will be chosen over the other version
 - rules are executed in 'first matched rule wins' order, so put all of them in the same text file for consistent behavior
+
+### Why Not Use the Bazel Supplied Migration/Generator Tool?
+
+Bazel provides a [migration tool](https://github.com/bazelbuild/migration-tooling).
+Maybe it works for you.
+
+There were several drawbacks that we hit with it:
+
+- There [is a bug](https://github.com/bazelbuild/migration-tooling/issues/47) that gets triggered by migrating one of our projects. There is a proposed fix for that bug in a fork, but even the proposed fix doesn't resolve the problem for us.
+- The tool does not allow you to merge new dependencies into an existing [WORKSPACE](../../WORKSPACE) - it creates a single WORKSPACE from a single Maven project. We need a merge feature, as we will migrate Maven projects incrementally, one at a time, from Maven to Bazel.
+- It uses the Aether project, which has questionable support. The [last commit](https://github.com/eclipse/aether-core/commits/master) was in 2014.
+
+We wrote this tool as an alternative to the Bazel supplied tool.
+It takes a different approach.
+Notably, the input into this tool is not your Maven pom.xml, it is the output of running ```mvn dependency:list``` in your Maven project.
+This eliminates the need for Aether.
+In addition, it can parse WORKSPACE files, which allows it to do smart merges when enforcing the Single Version Policy of a monorepo.
+
+There is another migration tool [bazel-deps](https://github.com/johnynek/bazel-deps) which has a similar feature set of this tool.
+The main differences with this tool as compared to *bazel-deps* are:
+- It is written in Java not Scala
+- It does not use Aether. By using a file to list the migrating dependencies, we have a history of the inputs into the migration.
+- It does not build transitive constructs in the WORKSPACE or BUILD files, all the dependencies are flat. We went with a no-transitive approach to dependencies in the beginning for a reason that is no longer relevant, but the approach remains. This may or may not be a good thing.
+
 
 ### License
 

@@ -1,5 +1,21 @@
+# Project Specific
+outputs
+external_deps.bzl.firstrun
+my-maven-project-deps.txt
+WORKSPACE.copy
+BUILD.out
+external_deps.bzl.out
+another-maven-project-deps.txt
+
+# Bazel
+bazel-bin
+bazel-genfiles
+bazel-out
+bazel-testlogs
+bazel-maventobazel-generator
+
+# Maven
 target
-outputs/*
 
 # Eclipse
 .classpath

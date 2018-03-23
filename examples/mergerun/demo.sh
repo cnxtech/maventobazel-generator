@@ -1,14 +1,22 @@
 # Hello World example for the Salesforce Bazel migration tool
 
+#
 # first do the dependency:list analysis on the sample Maven project
 echo ""
 echo "**********************************************************************************"
-echo "STEP 1: Generating the dependency list for the sample my-maven-project"
+echo "STEP 0: Copy in the existing external dependencies from the WORKSPACE to the inputs directory"
+cp ../WORKSPACE inputs/WORKSPACE.copy
+cp ../external_deps.* inputs
+
+# do the dependency:list analysis on the sample Maven project
+echo ""
+echo "**********************************************************************************"
+echo "STEP 1: Generating the dependency list for the sample another-maven-project"
 pushd .
-cd my-maven-project
-mvn -Dsort dependency:list > ../inputs/my-maven-project-deps.txt
+cd another-maven-project
+mvn -Dsort dependency:list > ../inputs/another-maven-project-deps.txt
 popd
-cat inputs/my-maven-project-deps.txt
+cat inputs/another-maven-project-deps.txt
 
 # build the migration tool
 pushd .
@@ -24,7 +32,6 @@ echo ""
 echo "**********************************************************************************"
 echo "STEP 3: generate the file that includes all the external dependencies from my-maven-project for the WORKSPACE"
 java -jar ../../target/maventobazel-generator-1.0.0.jar --workspace
-cp outputs/external_deps.bzl.out ../../../../external_deps.bzl.firstrun
 cat outputs/external_deps.bzl.out
 
 
